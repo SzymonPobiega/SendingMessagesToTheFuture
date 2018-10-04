@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+
+   <head>
+      <meta charset="utf-8">
+
+      <title>Sending messages to the future</title>
+      <meta name="description" content="Sending messages to the future">
+      <meta name="author" content="Szymon Pobiega">
+
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+      <link rel="stylesheet" href="css/reveal.css">
+      <link rel="stylesheet" href="css/theme/night.css" id="theme">
+
+      <!-- Code syntax highlighting -->
+      <link rel="stylesheet" href="lib/css/zenburn.css">
+
+      <!-- Printing and PDF exports -->
+      <script>
+         var link = document.createElement( 'link' );
+         link.rel = 'stylesheet';
+         link.type = 'text/css';
+         link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+         document.getElementsByTagName( 'head' )[0].appendChild( link );
+      </script>
+
+      <!--[if lt IE 9]>
+      <script src="lib/js/html5shiv.js"></script>
+      <![endif]-->
+
+      <style media="screen" type="text/css">
+         .reveal section img { background:none; border:none; box-shadow:none; }
+
+         .reveal table {
+           margin: auto;
+           border-collapse: collapse;
+           border-spacing: 0;
+         }
+
+         .reveal table th {
+           font-weight: bold;
+         }
+
+         .reveal table th,
+         .reveal table td {
+           text-align: left;
+           padding: 0.2em 0.5em 0.2em 0.5em;
+           border-bottom: 1px solid;
+         }
+      </style>
+   </head>
+
+   <body>
+      <div class="reveal">
+         <div class="slides">
+            <section>
+               <h2>Sending messages to the future</h2>
+               <p>Szymon Pobiega </p>
+               <p><a href="https://twitter.com/Szymon Pobiega">@SzymonPobiega</a></p>
+            </section>
+            <section>
+               <h2>Event Source all the things!</h2>
+               <ul>
+                  <li class="fragment">Command → Event</li>
+                  <li class="fragment">Event → Command</li>
+                  <li class="fragment">Rinse &amp; repeat</li>
+               </ul>
+            </section>
+            <section>
+               <img src="images/eda.png" class="stretch"/>
+            </section>
+            <section>
+               <img src="images/pond.png" class="stretch"/>
+            </section>
+            <section>
+               <h3>Time-dependent event processors distract flow</h2>
+            </section>
+            <section>
+               <h1>Examples?</h1>
+            </section>
+            <section>
+               <h3>
+               <pre class="stretch"><code class="csharp" data-noescape data-trim>
+List&lt;DataPoint&gt; dataPoints;
+
+void Handle(NotifyPrice message) {
+   dataPoints.Add(new DataPoint(message.Price, message.Date));
+
+   <mark class="highlight-inline">var cutOffTime = DateTime.Now - WindowSize;</mark>
+   dataPoints.RemoveAll(d => d.Date &lt; cutOffTime);
+}
+
+decimal Handle(GetAverage message) {
+   return dataPoints.Average(d => d.Price);
+}
+               </code></pre>
+            </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+List&lt;DataPoint&gt; dataPoints;
+
+void Handle(NotifyPrice message) {
+   dataPoints.Add(new DataPoint(message.Id, message.Price));
+
+   <mark class="highlight-inline">DeferBy(WindowSize, new RemoveDataPoint(message.Id));</mark>
+}
+
+void Handle(RemoveDataPoint message) {
+   dataPoints.RemoveAll(d => d.Id &gt; message.Id);
+}
+
+decimal Handle(GetAverage message) {
+   return dataPoints.Average(d => d.Price);
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h1>Coordinating transactions</h1>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+void Handle(TransactionSubmitted message) {
+   Send(message.FromAccount, new Debit(message.Amount));
+   Send(message.ToAccount, new Credit(message.Amount));
+   <mark class="highlight-inline">TimeoutAt = DateTime.Now + TransactionTimeout;</mark>
+}
+
+void Handle(DebitConfirmed message) {
+   Debitted = true;
+   if (Credited) Complete();
+}
+
+void Handle(CreditConfirmed message) {
+   Credited = true;
+   if (Debitted) Complete();
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="sql" data-noescape data-trim>
+SELECT * FROM Transactions 
+   WHERE (Debitted = 0 OR Credited = 0) 
+   <mark class="highlight-inline">AND TimeoutAt &lt; GETUTCDATE()</mark>
+                  </code></pre>
+               </h3>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+void Timeout() {
+   Send(message.FromAccount, new CancelDebit(message.Amount));
+   Send(message.ToAccount, new CancelCredit(message.Amount));
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+void Handle(TransactionSubmitted message) {
+   Send(message.FromAccount, new Debit(message.Amount));
+   Send(message.ToAccount, new Credit(message.Amount));
+   <mark class="highlight-inline">DeferBy(TransactionTimeout, new CancelTransaction(message...))</mark>
+}
+
+void Handle(DebitConfirmed message) {
+   Debitted = true;
+   if (Credited) Complete();
+}
+
+void Handle(CreditConfirmed message) {
+   Credited = true;
+   if (Debitted) Complete();
+}
+
+void Handle(CancelTransaction message) {
+   Send(message.FromAccount, new CancelDebit(message.Amount));
+   Send(message.ToAccount, new CancelCredit(message.Amount));
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h1>Auction</h1>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+Dictionary&lt;string, decimal&gt; bids;
+
+void Handle(StartBidding message) {
+   foreach (var bidder in message.Bidders) {
+      Send(bidder.Name, new GetQuote());
+   }
+   <mark class="highlight-inline">EndTime = DateTime.UtcNow + WaitTime;</mark>
+}
+
+void Handle(Quote message)
+{
+   quotes[message.Bidder] = message.Quote;
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="sql" data-noescape data-trim>
+SELECT * FROM Auctions 
+<mark class="highlight-inline">WHERE EndTime &gt; GETUTCDATE()</mark>
+                  </code></pre>
+               </h3>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+void SendReply() {
+   var bestBid = bids.Min(b => b.Value);
+   ReplyToOriginator(bestBid.Key);
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+Dictionary&lt;string, decimal&gt; bids;
+
+void Handle(StartBidding message) {
+   foreach (var bidder in message.Bidders) {
+      Send(bidder.Name, new GetQuote());
+   }
+   <mark class="highlight-inline">DeferBy(WaitTime, BiddingClosed());</mark>
+}
+
+void Handle(Quote message) {
+   quotes[message.Bidder] = message.Quote;
+}
+
+void Handle(BiddingClosed message) {
+   var bestBid = bids.Min(b => b.Value);
+   ReplyToOriginator(bestBid.Key);
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h1>
+                  Discount policy
+               </h1>
+               <h3 class="fragment">
+                  20% if customer made two purchases in last two years
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+void Handle(OrderAccepted message) {
+   purchases.Add(new Purchase(message.Date));
+}
+
+void Handle(CalculateDiscount message) {
+   <mark class="highlight-inline">var purchasesWithinPromoTime = purchases
+      .Where(p => p.Date > DateTime.Now - PromoTime).Count();</mark>
+   var factor = purchasesWithinPromoTime >= 2 ? 0.8 : 1.0;
+   
+   Reply(new CalculateDiscountResponse(message.Value * factor));
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h3>
+                  <pre class="stretch"><code class="csharp" data-noescape data-trim>
+List&lt;Purchase&gt; purchases;
+
+void Handle(OrderAccepted message) {
+   purchases.Add(new Purchase(message.Id));
+   <mark class="highlight-inline">DeferBy(PromoTime, new ForgetPurchase(message.Id));</mark>
+}
+
+void Handle(ForgetPurchase message) {
+   purchases.RemoveAll(p => p.Id == message.Id);
+}
+
+void Handle(CalculateDiscount message) {
+   var factor = purchases.Count >= 2 ? 0.8 : 1.0;
+   Reply(new CalculateDiscountResponse(message.Value * factor));
+}
+                  </code></pre>
+               </h3>
+            </section>
+            <section>
+               <h1>Ponds are evil</h1>
+               <ul>
+                  <li class="fragment">Require polling or state tracking</li>
+                  <li class="fragment">Time-based logic is hard to DRY</li>
+                  <li class="fragment">Unit testing is problematic</li>
+                  <li class="fragment">Can hide important business concepts</li>
+               </ul>
+            </section>
+            <section>
+               <h2>Warping space-time</h1>
+               <img src="images/time-space-warp.png" class="stretch"/> 
+            </section>
+            <section>
+               <img src="images/balls.jpg" class="stretch"/>
+            </section>
+            <section>
+               <h2>RabbitMQ</h2>
+            </section>
+            <section>
+               <img src="images/rabbit.png" class="stretch"/>
+            </section>
+            <section>
+               <h2>Binding</h2>
+               <img src="images/binding.png" class="stretch"/>
+            </section>
+            <section>
+               <h2>Time-to-deliver</h2>
+               <img src="images/dead-letter.png" class="stretch"/>
+            </section>
+            <section>
+               <h2>Defer by a fixed time span</h2>
+               <img src="images/stage.png" class="stretch"/>
+            </section>
+            <section>
+               <h2>Cascade</h2>
+               <img src="images/two-stages.png" class="stretch"/>
+            </section>
+            <section>
+               <h2>Recap</h2>
+               <ul>
+                  <li class="fragment">Command → Event → Command is not enough</li>
+                  <li class="fragment">Ponds disrupt the message flow</li>
+                  <li class="fragment">Rabbit holes can warp time-space</li>
+               </ul>
+            </section>
+            <section>
+               <h1>Thank you!</h1>
+               <p>Szymon Pobiega</p>
+               <p><a href="https://twitter.com/SzymonPobiega">@SzymonPobiega</a></p>
+            </section>
+         </div>
+      </div>
+
+      <script src="lib/js/head.min.js"></script>
+      <script src="lib/js/jquery-2.1.4.min.js"></script>
+      <script src="js/reveal.js"></script>
+
+      <script>
+
+      $(function() {
+         $('div.commentedContent').each(function(i, div){
+            var lines = $(div).text().split('\n');
+             var text = '';
+             $.each(lines, function(i, line) {
+                 if (line) {
+                     text += '<p style="text-align: left; white-space: pre; margin: 0; padding: 0;">' + i + ".  " + line + '</p>';
+                 }
+             });
+             $(div).html(text);
+
+             // apply keywords
+             $(div).children().each(function(i,p){
+                var par = $(p);
+               var words = par.text().split(" ");
+               par.empty();
+               $.each(words, function(i, w) {
+                  if($.inArray(w, ["public", "void", "new", "var", "bool", "object", "using"]) > -1){
+                     par.append($('<span style="color: rgb(204, 153, 204);"/>').text(w + " "));
+                  }
+                  else{
+                     par.append(w + " ");
+                  }
+               });
+             });
+         })
+
+         $('div.contentComment').each(function(i, div){
+            var lines = $(div).text().split('\n');
+             var text = '';
+             $.each(lines, function(i, line) {
+                 if (line) {
+                     text += '<p style="text-align: right; margin: 0; padding: 0;">' + line + '</p>';
+                 }
+             });
+             $(div).html(text);
+         })
+      });
+
+         // Full list of configuration options available at:
+         // https://github.com/hakimel/reveal.js#configuration
+         Reveal.initialize({
+            controls: true,
+            progress: true,
+            history: true,
+            center: true,
+
+            margin: 0,
+
+            transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+            math: {
+               // mathjax: 'http://cdn.mathjax.org/mathjax/latest/MathJax.js',
+               config: 'TeX-AMS_HTML-full'
+            },
+
+            // Optional reveal.js plugins
+            dependencies: [
+               { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+               { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+               { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+               { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+               { src: 'plugin/zoom-js/zoom.js', async: true },
+               { src: 'plugin/notes/notes.js', async: true },
+               { src: 'plugin/math/math.js', async: true }
+            ]
+         });
+
+      </script>
+
+   </body>
+</html>
