@@ -51,6 +51,15 @@
            padding: 0.2em 0.5em 0.2em 0.5em;
            border-bottom: 1px solid;
          }
+
+         .highlight-inline {
+            background:yellow;
+            color:black;
+        }
+        .highlight-inline span {
+            background:inherit;
+            color:inherit;
+        }
       </style>
    </head>
 
@@ -82,6 +91,29 @@
             <section>
                <h1>Examples?</h1>
             </section>
+            <section>
+                <h2>Conventions</h2>
+                <h3>
+                <pre class="stretch"><code class="csharp" data-noescape data-trim>
+class StatefulMessageHandler {
+    public void Correlate()
+    {
+        Matching&lt;MyMessage&gt;(m => m.OrderId);
+        Matching&lt;OtherMessage&gt;(m => m.TransactionId);
+    }
+    public void Handle(SomeMessage message) {
+        /*...*/
+    }
+    public void Handle(OtherMessage message) {
+        /*...*/
+    }
+}  
+                </code></pre>
+                </h3>
+            </section>
+            <section>
+                <h1>Moving average</h1>
+             </section>
             <section>
                <h3>
                <pre class="stretch"><code class="csharp" data-noescape data-trim>
@@ -214,7 +246,7 @@ void Handle(Quote message)
                <h3>
                   <pre class="stretch"><code class="sql" data-noescape data-trim>
 SELECT * FROM Auctions 
-<mark class="highlight-inline">WHERE EndTime &gt; GETUTCDATE()</mark>
+    <mark class="highlight-inline">WHERE EndTime &gt; GETUTCDATE()</mark>
                   </code></pre>
                </h3>
                <h3>
@@ -312,7 +344,8 @@ void Handle(CalculateDiscount message) {
                <img src="images/balls.jpg" class="stretch"/>
             </section>
             <section>
-               <h2>RabbitMQ</h2>
+                <h2>Case study</h2>
+               <h1>RabbitMQ</h1>
             </section>
             <section>
                <img src="images/rabbit.png" class="stretch"/>
