@@ -74,17 +74,36 @@
             <section>
                <h2>Event Source all the things!</h2>
                <ul>
-                  <li class="fragment">Command → Event</li>
-                  <li class="fragment">Event → Command</li>
-                  <li class="fragment">Rinse &amp; repeat</li>
+                    <li class="fragment">Command → Event</li>
+                    <li class="fragment">Event → Command</li>
+                    <li class="fragment">Rinse &amp; repeat</li>
                </ul>
+            </section>
+            <section>
+                <h2>Become reactive or die trying!</h2>
+                <ul>
+                    <li class="fragment">Publish and subscribe to streams of records</li>
+                    <li class="fragment">Store streams of records in a fault-tolerant durable way</li>
+                    <li class="fragment">Process streams of records as they occur</li>
+                </ul>
+            </section>
+            <section>
+                <h2>Software system is defined by</h2>
+                <h2 class="fragment strike">data stored in it</h2>
+                <h2 class="fragment">messages flowing through it</h2>
             </section>
             <section>
                <img src="images/eda.png" class="stretch"/>
             </section>
             <section>
+                <img src="images/stream.jpg" class="stretch"/>
+            </section>
+            <section>
                <img src="images/pond.png" class="stretch"/>
             </section>
+            <section>
+                <img src="images/swamp.jpg" class="stretch"/>
+                </section>
             <section>
                <h3>Time-dependent event processors distract flow</h2>
             </section>
@@ -328,7 +347,7 @@ void Handle(CalculateDiscount message) {
                </h3>
             </section>
             <section>
-               <h1>Ponds are evil</h1>
+               <h1>Swamps are evil</h1>
                <ul>
                   <li class="fragment">Require polling or state tracking</li>
                   <li class="fragment">Time-based logic is hard to DRY</li>
@@ -337,7 +356,7 @@ void Handle(CalculateDiscount message) {
                </ul>
             </section>
             <section>
-               <h2>Warping space-time</h1>
+               <h2>Warping spacetime</h1>
                <img src="images/time-space-warp.png" class="stretch"/> 
             </section>
             <section>
@@ -370,14 +389,15 @@ void Handle(CalculateDiscount message) {
                <h2>Recap</h2>
                <ul>
                   <li class="fragment">Command → Event → Command is not enough</li>
-                  <li class="fragment">Ponds disrupt the message flow</li>
-                  <li class="fragment">Rabbit holes can warp time-space</li>
+                  <li class="fragment">Swamps disrupt the message flow</li>
+                  <li class="fragment">Rabbit holes warp spacetime</li>
                </ul>
             </section>
             <section>
                <h1>Thank you!</h1>
                <p>Szymon Pobiega</p>
                <p><a href="https://twitter.com/SzymonPobiega">@SzymonPobiega</a></p>
+               <h3>http://go.particular.net/voxxeddays</h3>
             </section>
          </div>
       </div>
@@ -389,44 +409,6 @@ void Handle(CalculateDiscount message) {
       <script>
 
       $(function() {
-         $('div.commentedContent').each(function(i, div){
-            var lines = $(div).text().split('\n');
-             var text = '';
-             $.each(lines, function(i, line) {
-                 if (line) {
-                     text += '<p style="text-align: left; white-space: pre; margin: 0; padding: 0;">' + i + ".  " + line + '</p>';
-                 }
-             });
-             $(div).html(text);
-
-             // apply keywords
-             $(div).children().each(function(i,p){
-                var par = $(p);
-               var words = par.text().split(" ");
-               par.empty();
-               $.each(words, function(i, w) {
-                  if($.inArray(w, ["public", "void", "new", "var", "bool", "object", "using"]) > -1){
-                     par.append($('<span style="color: rgb(204, 153, 204);"/>').text(w + " "));
-                  }
-                  else{
-                     par.append(w + " ");
-                  }
-               });
-             });
-         })
-
-         $('div.contentComment').each(function(i, div){
-            var lines = $(div).text().split('\n');
-             var text = '';
-             $.each(lines, function(i, line) {
-                 if (line) {
-                     text += '<p style="text-align: right; margin: 0; padding: 0;">' + line + '</p>';
-                 }
-             });
-             $(div).html(text);
-         })
-      });
-
          // Full list of configuration options available at:
          // https://github.com/hakimel/reveal.js#configuration
          Reveal.initialize({
