@@ -99,6 +99,9 @@
                 <img src="images/stream.jpg" class="stretch"/>
             </section>
             <section>
+                <img src="images/clock.jpg" class="stretch"/>
+            </section>
+            <section>
                <img src="images/pond.png" class="stretch"/>
             </section>
             <section>
@@ -159,7 +162,7 @@ List&lt;DataPoint&gt; dataPoints;
 void Handle(NotifyPrice message) {
    dataPoints.Add(new DataPoint(message.Id, message.Price));
 
-   <mark class="highlight-inline">DeferBy(WindowSize, new RemoveDataPoint(message.Id));</mark>
+   <mark class="highlight-inline">SendToFuture(WindowSize, new RemoveDataPoint(message.Id));</mark>
 }
 
 void Handle(RemoveDataPoint message) {
@@ -219,7 +222,7 @@ void Timeout() {
 void Handle(TransactionSubmitted message) {
    Send(message.FromAccount, new Debit(message.Amount));
    Send(message.ToAccount, new Credit(message.Amount));
-   <mark class="highlight-inline">DeferBy(TransactionTimeout, new CancelTransaction(message...))</mark>
+   <mark class="highlight-inline">SendToFuture(TransactionTimeout, new CancelTransaction(...))</mark>
 }
 
 void Handle(DebitConfirmed message) {
@@ -286,7 +289,7 @@ void Handle(StartBidding message) {
    foreach (var bidder in message.Bidders) {
       Send(bidder.Name, new GetQuote());
    }
-   <mark class="highlight-inline">DeferBy(WaitTime, BiddingClosed());</mark>
+   <mark class="highlight-inline">SendToFuture(WaitTime, BiddingClosed());</mark>
 }
 
 void Handle(Quote message) {
@@ -332,7 +335,7 @@ List&lt;Purchase&gt; purchases;
 
 void Handle(OrderAccepted message) {
    purchases.Add(new Purchase(message.Id));
-   <mark class="highlight-inline">DeferBy(PromoTime, new ForgetPurchase(message.Id));</mark>
+   <mark class="highlight-inline">SendToFuture(PromoTime, new ForgetPurchase(message.Id));</mark>
 }
 
 void Handle(ForgetPurchase message) {
@@ -358,6 +361,9 @@ void Handle(CalculateDiscount message) {
             <section>
                <h2>Warping spacetime</h1>
                <img src="images/time-space-warp.png" class="stretch"/> 
+            </section>
+            <section>
+                <img src="images/ball-pool.jpg" class="stretch"/>
             </section>
             <section>
                <img src="images/balls.jpg" class="stretch"/>
