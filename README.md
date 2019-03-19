@@ -1,1 +1,1 @@
-To watch the presentation online click [here](https://rawgit.com/SzymonPobiega/SendingMessagesToTheFuture/master/index.html) (Powered by [RawGit](https://rawgit.com/))
+To watch the presentation online click [here](https://szymonpobiega.github.io/SendingMessagesToTheFuture/)
